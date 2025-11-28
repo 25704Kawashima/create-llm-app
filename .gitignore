@@ -169,3 +169,4 @@ cython_debug/
 .db_service/
 .chroma/
 logs/
+serpapi_error.txt

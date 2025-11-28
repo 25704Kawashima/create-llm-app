@@ -7,6 +7,7 @@ from langchain.prompts import (
 )
 import requests
 import initialize as init
+import xml.etree.ElementTree as ET
 
 def get_news(query):
     """SerpAPIを使用して日本のニュースを取得する"""
@@ -59,13 +60,32 @@ def ask_ai_agent(question):
     except Exception as e:
         return f"エラーが発生しました: {str(e)}"
 
+def get_yahoo_news():
+    """Yahoo! JAPANのRSSフィードからニュースを取得する"""
+    url = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"  # Yahoo! JAPANのトップニュースRSS
+    response = requests.get(url)
+    if response.status_code == 200:
+        # XMLをパース
+        root = ET.fromstring(response.content)
+        news_items = []
+        for item in root.findall(".//item"):
+            title = item.find("title").text
+            link = item.find("link").text
+            description = item.find("description").text if item.find("description") is not None else "説明なし"
+            news_items.append({"title": title, "link": link, "description": description})
+        return news_items
+    else:
+        return {"error": f"HTTP {response.status_code}: ニュースを取得できませんでした。"}
+
 def handle_user_input(user_input):
     """ユーザー入力に応じて適切な処理を実行する"""
     if "ニュース" in user_input:
         news_data = get_news("latest news")
         if 'news_results' in news_data:
             st.header("最新のニュース")
-            for article in news_data['news_results']:
+            for i, article in enumerate(news_data['news_results']):
+                if i >= 10:  # 最大10回でループを終了
+                    break
                 title = article.get('title', 'タイトルなし')
                 snippet = article.get('snippet', '説明なし')
                 link = article.get('link', '#')
